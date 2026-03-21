@@ -78,3 +78,34 @@ function app_session_key(): string
     $data = json_decode((string)file_get_contents($file), true);
     return is_array($data) ? (string)($data['session_key'] ?? '') : '';
 }
+
+/**
+ * Return the Spotify application configuration values from the environment.
+ *
+ * @return array{client_id: string, client_secret: string, redirect_uri: string}
+ */
+function spotify_config(): array
+{
+    return [
+        'client_id'     => getenv('SPOTIFY_CLIENT_ID') ?: '',
+        'client_secret' => getenv('SPOTIFY_CLIENT_SECRET') ?: '',
+        'redirect_uri'  => getenv('SPOTIFY_REDIRECT_URI') ?: '',
+    ];
+}
+
+/**
+ * Read the persisted Spotify session data from data/spotify_session.json.
+ *
+ * Returns null if the file does not exist or is unreadable.
+ *
+ * @return array{access_token: string, refresh_token: string, expires_at: int, username?: string}|null
+ */
+function spotify_session_data(): ?array
+{
+    $file = __DIR__ . '/../data/spotify_session.json';
+    if (!is_file($file)) {
+        return null;
+    }
+    $data = json_decode((string)file_get_contents($file), true);
+    return is_array($data) ? $data : null;
+}
