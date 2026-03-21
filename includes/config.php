@@ -42,8 +42,18 @@ load_env_file(__DIR__ . '/../.env');
 function app_config(): array
 {
     return [
-        'api_key' => getenv('LASTFM_API_KEY') ?: '',
+        'api_key'       => getenv('LASTFM_API_KEY') ?: '',
         'shared_secret' => getenv('LASTFM_SHARED_SECRET') ?: '',
-        'callback_url' => getenv('LASTFM_CALLBACK_URL') ?: '',
+        'callback_url'  => getenv('LASTFM_CALLBACK_URL') ?: '',
     ];
+}
+
+function app_session_key(): string
+{
+    $file = __DIR__ . '/../data/session.json';
+    if (!is_file($file)) {
+        return '';
+    }
+    $data = json_decode((string)file_get_contents($file), true);
+    return is_array($data) ? (string)($data['session_key'] ?? '') : '';
 }

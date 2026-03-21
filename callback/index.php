@@ -19,6 +19,17 @@ if ($token === '') {
         $error = (string)($sessionResult['error'] ?? 'Could not exchange token for session');
     } else {
         $session = $sessionResult['session'];
+        $dataDir = __DIR__ . '/../data';
+        if (!is_dir($dataDir)) {
+            mkdir($dataDir, 0750, true);
+        }
+        $payload = json_encode([
+            'session_key' => $session['key'] ?? '',
+            'username'    => $session['name'] ?? '',
+            'saved_at'    => date('c'),
+        ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+        file_put_contents($dataDir . '/session.json', $payload);
+        chmod($dataDir . '/session.json', 0600);
     }
 }
 
@@ -87,9 +98,8 @@ function h(string $value): string
         <?php if ($error !== ''): ?>
             <p class="error"><?php echo h($error); ?></p>
         <?php else: ?>
-            <p class="ok">Success: token exchanged for a Last.fm session.</p>
-            <pre><?php echo h(json_encode($session, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) ?: '{}'); ?></pre>
-            <p>Store <strong>session.key</strong> securely on your server. Do not expose it in client-side code.</p>
+            <p class="ok">Success! Authenticated as <strong><?php echo h((string)($session['name'] ?? '')); ?></strong> and session key saved to server.</p>
+            <p>The session key is stored in <code>data/session.json</code> (not web-accessible). Your bot can now use it to scrobble.</p>
         <?php endif; ?>
 
         <p><a href="/lastfm">Back to LastBot homepage</a></p>

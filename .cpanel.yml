@@ -4,11 +4,15 @@ deployment:
     - export DEPLOYPATH=/home2/meshnet/public_html/lastfm
     - /bin/mkdir -p $DEPLOYPATH
     - /bin/mkdir -p $DEPLOYPATH/callback
+    - /bin/mkdir -p $DEPLOYPATH/data
     - /bin/cp -R includes $DEPLOYPATH/
     - /bin/cp index.php $DEPLOYPATH/index.php
     - /bin/cp callback/index.php $DEPLOYPATH/callback/index.php
     - /bin/cp .env.example $DEPLOYPATH/.env.example
     - /bin/cp README.md $DEPLOYPATH/
+    - /bin/cp data/.htaccess $DEPLOYPATH/data/.htaccess
     - /usr/bin/find $DEPLOYPATH -type d -exec chmod 755 {} \;
     - /usr/bin/find $DEPLOYPATH -type f -exec chmod 644 {} \;
     - if [ -f $DEPLOYPATH/.env ]; then chmod 600 $DEPLOYPATH/.env; fi
+    - chmod 750 $DEPLOYPATH/data
+    - if [ -f $DEPLOYPATH/data/session.json ]; then chmod 600 $DEPLOYPATH/data/session.json; fi
