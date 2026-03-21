@@ -4,21 +4,56 @@ declare(strict_types=1);
 require_once __DIR__ . '/includes/config.php';
 require_once __DIR__ . '/includes/lastfm.php';
 
-$config = app_config();
-$error = '';
+session_start();
 
+$config  = app_config();
+$error   = '';
+$success = '';
+
+// Step 1: request a token and redirect to Last.fm
 if (isset($_GET['connect'])) {
     if ($config['api_key'] === '' || $config['shared_secret'] === '') {
         $error = 'Missing LASTFM_API_KEY or LASTFM_SHARED_SECRET in .env';
     } else {
         $tokenResult = lastfm_get_token($config['api_key'], $config['shared_secret']);
-
         if (!$tokenResult['ok']) {
             $error = (string)($tokenResult['error'] ?? 'Could not get Last.fm token');
         } else {
+            $_SESSION['lastfm_pending_token'] = $tokenResult['token'];
             $authUrl = lastfm_auth_url($config['api_key'], $tokenResult['token'], $config['callback_url']);
             header('Location: ' . $authUrl);
             exit;
+        }
+    }
+}
+
+// Step 2: Last.fm didn't redirect to /callback — exchange the pending token here
+if (isset($_GET['complete']) && !empty($_SESSION['lastfm_pending_token'])) {
+    $token = (string)$_SESSION['lastfm_pending_token'];
+    if ($config['api_key'] === '' || $config['shared_secret'] === '') {
+        $error = 'Missing LASTFM_API_KEY or LASTFM_SHARED_SECRET in .env';
+    } else {
+        $sessionResult = lastfm_get_session($config['api_key'], $config['shared_secret'], $token);
+        if (!$sessionResult['ok']) {
+            $error = 'Could not exchange token: ' . (string)($sessionResult['error'] ?? 'unknown error');
+        } else {
+            $sess    = $sessionResult['session'];
+            $dataDir = __DIR__ . '/data';
+            if (!is_dir($dataDir)) {
+                mkdir($dataDir, 0775, true);
+            }
+            $payload = json_encode([
+                'session_key' => $sess['key'] ?? '',
+                'username'    => $sess['name'] ?? '',
+                'saved_at'    => date('c'),
+            ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+            if (file_put_contents($dataDir . '/session.json', $payload) === false) {
+                $error = 'Could not write session.json. Check write permissions on: ' . $dataDir;
+            } else {
+                chmod($dataDir . '/session.json', 0600);
+                unset($_SESSION['lastfm_pending_token']);
+                $success = 'Authenticated as ' . htmlspecialchars((string)($sess['name'] ?? ''), ENT_QUOTES, 'UTF-8') . ' — session key saved.';
+            }
         }
     }
 }
@@ -87,6 +122,15 @@ function h(string $value): string
             font-weight: 600;
             margin-top: 8px;
         }
+        .ok {
+            padding: 12px;
+            border-radius: 10px;
+            background: #dcfce7;
+            color: #166534;
+            border: 1px solid #86efac;
+            margin-bottom: 12px;
+            font-weight: 600;
+        }
         code {
             background: #f2f4f8;
             padding: 2px 6px;
@@ -104,13 +148,25 @@ function h(string $value): string
             <div class="error"><?php echo h($error); ?></div>
         <?php endif; ?>
 
-        <a class="button" href="?connect=1">Connect Last.fm</a>
+        <?php if ($success !== ''): ?>
+            <div class="ok"><?php echo h($success); ?></div>
+        <?php endif; ?>
+
+        <?php if ($success === ''): ?>
+            <a class="button" href="?connect=1">Connect Last.fm</a>
+
+            <?php if (!empty($_SESSION['lastfm_pending_token'])): ?>
+                <p style="margin-top:16px">If Last.fm showed &ldquo;Application authenticated&rdquo; but didn&rsquo;t redirect back, click below to complete the auth:</p>
+                <a class="button" style="background:#1a6b3a" href="?complete=1">Complete authentication</a>
+            <?php endif; ?>
+        <?php endif; ?>
 
         <h2>Config Check</h2>
         <ul>
             <li>API key: <?php echo $config['api_key'] !== '' ? 'set' : 'missing'; ?></li>
             <li>Shared secret: <?php echo $config['shared_secret'] !== '' ? 'set' : 'missing'; ?></li>
             <li>Callback URL: <code><?php echo h($config['callback_url']); ?></code></li>
+            <li>Session key: <?php echo app_session_key() !== '' ? 'saved' : 'not yet saved'; ?></li>
         </ul>
     </main>
 </body>
