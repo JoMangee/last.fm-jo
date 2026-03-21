@@ -45,7 +45,7 @@ if (isset($_GET['error'])) {
                 ? (string)($profileResult['data']['display_name'] ?? $profileResult['data']['id'] ?? 'unknown')
                 : 'unknown';
 
-            $dataDir = realpath(__DIR__ . '/../../data') ?: (__DIR__ . '/../../data');
+            $dataDir = spotify_data_dir();
             if (!is_dir($dataDir)) {
                 if (!mkdir($dataDir, 0750, true)) {
                     $error = 'Could not create data directory: ' . $dataDir;
