@@ -104,6 +104,19 @@ function bot_secret(): string
 }
 
 /**
+ * Return the absolute path to the Spotify data directory.
+ *
+ * Uses the includes/ directory as the anchor so the path is correct
+ * regardless of which entry-point file (root or subdir) calls it.
+ *
+ * @return string Absolute path without trailing slash.
+ */
+function spotify_data_dir(): string
+{
+    return __DIR__ . '/../data';
+}
+
+/**
  * Read the persisted Spotify session data from data/spotify_session.json.
  *
  * Returns null if the file does not exist or is unreadable.
@@ -112,7 +125,7 @@ function bot_secret(): string
  */
 function spotify_session_data(): ?array
 {
-    $file = __DIR__ . '/../data/spotify_session.json';
+    $file = spotify_data_dir() . '/spotify_session.json';
     if (!is_file($file)) {
         return null;
     }

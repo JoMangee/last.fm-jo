@@ -30,7 +30,7 @@ if (isset($_GET['connect'])) {
 
 // ── Disconnect: remove saved session ─────────────────────────────────────────
 if (isset($_GET['disconnect'])) {
-    $file = __DIR__ . '/../data/spotify_session.json';
+    $file = spotify_data_dir() . '/spotify_session.json';
     if (is_file($file)) {
         unlink($file);
     }
@@ -55,7 +55,7 @@ if ($session !== null) {
             $accessToken          = (string)$refreshResult['access_token'];
             $session['access_token'] = $accessToken;
             $session['expires_at']   = time() + (int)$refreshResult['expires_in'];
-            $dataDir = __DIR__ . '/../data';
+            $dataDir = spotify_data_dir();
             file_put_contents(
                 $dataDir . '/spotify_session.json',
                 (string)json_encode($session, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES)

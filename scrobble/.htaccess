@@ -1,0 +1,5 @@
+Options -Indexes
+DirectoryIndex index.php
+
+# Prevent LiteSpeed/Apache from 301-redirecting POST requests to trailing slash
+DirectorySlash Off
