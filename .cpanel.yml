@@ -1,26 +1,35 @@
 ---
-# Copy this file to .cpanel.yml and set DEPLOYPATH to your web root.
-# Example: /home/YOUR_USERNAME/public_html/lastfm
 deployment:
   tasks:
-    - export DEPLOYPATH=/home/YOUR_USERNAME/public_html/lastfm
-    - /bin/mkdir -p $DEPLOYPATH
-    - /bin/mkdir -p $DEPLOYPATH/callback
-    - /bin/mkdir -p $DEPLOYPATH/data
-    - /bin/mkdir -p $DEPLOYPATH/spotify
-    - /bin/mkdir -p $DEPLOYPATH/spotify/callback
-    - /bin/cp -R includes $DEPLOYPATH/
-    - /bin/cp index.php $DEPLOYPATH/index.php
-    - /bin/cp callback/index.php $DEPLOYPATH/callback/index.php
-    - /bin/cp spotify/index.php $DEPLOYPATH/spotify/index.php
-    - /bin/cp spotify/callback/index.php $DEPLOYPATH/spotify/callback/index.php
-    - /bin/cp .env.example $DEPLOYPATH/.env.example
-    - /bin/cp README.md $DEPLOYPATH/
-    - /bin/cp data/.htaccess $DEPLOYPATH/data/.htaccess
-    - /usr/bin/find $DEPLOYPATH -type d -exec chmod 755 {} \;
-    - /usr/bin/find $DEPLOYPATH -type f -exec chmod 644 {} \;
-    - if [ -f $DEPLOYPATH/.env ]; then chmod 600 $DEPLOYPATH/.env; fi
-    - chmod 750 $DEPLOYPATH/data
-    - chmod 775 $DEPLOYPATH/data
-    - if [ -f $DEPLOYPATH/data/session.json ]; then chmod 600 $DEPLOYPATH/data/session.json; fi
-    - if [ -f $DEPLOYPATH/data/spotify_session.json ]; then chmod 600 $DEPLOYPATH/data/spotify_session.json; fi
+    # ── Last.fm ──────────────────────────────────────────────────────────
+    - export LASTFMPATH=/home2/meshnet/public_html/lastfm
+    - /bin/mkdir -p $LASTFMPATH
+    - /bin/mkdir -p $LASTFMPATH/callback
+    - /bin/mkdir -p $LASTFMPATH/data
+    - /bin/cp -R includes $LASTFMPATH/
+    - /bin/cp index.php $LASTFMPATH/index.php
+    - /bin/cp callback/index.php $LASTFMPATH/callback/index.php
+    - /bin/cp .env.example $LASTFMPATH/.env.example
+    - /bin/cp README.md $LASTFMPATH/
+    - /bin/cp data/.htaccess $LASTFMPATH/data/.htaccess
+    - /usr/bin/find $LASTFMPATH -type d -exec chmod 755 {} \;
+    - /usr/bin/find $LASTFMPATH -type f -exec chmod 644 {} \;
+    - if [ -f $LASTFMPATH/.env ]; then chmod 600 $LASTFMPATH/.env; fi
+    - chmod 750 $LASTFMPATH/data
+    - chmod 775 $LASTFMPATH/data
+    - if [ -f $LASTFMPATH/data/session.json ]; then chmod 600 $LASTFMPATH/data/session.json; fi
+    # ── Spotify ───────────────────────────────────────────────────────────
+    - export SPOTIFYPATH=/home2/meshnet/public_html/spotify
+    - /bin/mkdir -p $SPOTIFYPATH
+    - /bin/mkdir -p $SPOTIFYPATH/callback
+    - /bin/mkdir -p $SPOTIFYPATH/data
+    - /bin/cp -R includes $SPOTIFYPATH/
+    - /bin/cp spotify/index.php $SPOTIFYPATH/index.php
+    - /bin/cp spotify/callback/index.php $SPOTIFYPATH/callback/index.php
+    - /bin/cp data/.htaccess $SPOTIFYPATH/data/.htaccess
+    - /usr/bin/find $SPOTIFYPATH -type d -exec chmod 755 {} \;
+    - /usr/bin/find $SPOTIFYPATH -type f -exec chmod 644 {} \;
+    - if [ -f $SPOTIFYPATH/.env ]; then chmod 600 $SPOTIFYPATH/.env; fi
+    - chmod 750 $SPOTIFYPATH/data
+    - chmod 775 $SPOTIFYPATH/data
+    - if [ -f $SPOTIFYPATH/data/spotify_session.json ]; then chmod 600 $SPOTIFYPATH/data/spotify_session.json; fi
