@@ -199,3 +199,121 @@ function lastfm_get_session(string $apiKey, string $sharedSecret, string $token)
 
     return ['ok' => true, 'session' => $decoded['session']];
 }
+
+/**
+ * Perform a POST request to the Last.fm API.
+ *
+ * @param string $url    Target URL.
+ * @param array  $fields POST body as key/value pairs.
+ * @return array{ok: bool, status?: int, body?: string, error?: string}
+ */
+function lastfm_http_post(string $url, array $fields): array
+{
+    if (function_exists('curl_init')) {
+        $ch = curl_init($url);
+        if ($ch === false) {
+            return ['ok' => false, 'error' => 'Failed to initialize cURL'];
+        }
+
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_POST           => true,
+            CURLOPT_POSTFIELDS     => http_build_query($fields),
+            CURLOPT_HTTPHEADER     => ['Accept: application/json'],
+            CURLOPT_TIMEOUT        => 20,
+            CURLOPT_CONNECTTIMEOUT => 10,
+            CURLOPT_SSL_VERIFYPEER => true,
+        ]);
+
+        $body   = curl_exec($ch);
+        $error  = curl_error($ch);
+        $status = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+
+        if ($body === false) {
+            return ['ok' => false, 'error' => $error !== '' ? $error : 'HTTP request failed'];
+        }
+
+        return ['ok' => true, 'status' => $status, 'body' => (string)$body];
+    }
+
+    $context = stream_context_create([
+        'http' => [
+            'method'  => 'POST',
+            'header'  => "Accept: application/json\r\nContent-Type: application/x-www-form-urlencoded\r\n",
+            'content' => http_build_query($fields),
+            'timeout' => 20,
+        ],
+    ]);
+
+    $body = @file_get_contents($url, false, $context);
+    if ($body === false) {
+        return ['ok' => false, 'error' => 'HTTP request failed'];
+    }
+
+    return ['ok' => true, 'status' => 200, 'body' => $body];
+}
+
+/**
+ * Scrobble a track to Last.fm (track.scrobble).
+ *
+ * @param string $apiKey       Application API key.
+ * @param string $sharedSecret Application shared secret.
+ * @param string $sessionKey   Authenticated session key.
+ * @param string $artist       Artist name.
+ * @param string $track        Track name.
+ * @param string $album        Album name (optional).
+ * @param int    $timestamp    Unix timestamp of when the track was played (0 = now).
+ * @return array{ok: bool, accepted?: int, error?: string}
+ */
+function lastfm_scrobble(
+    string $apiKey,
+    string $sharedSecret,
+    string $sessionKey,
+    string $artist,
+    string $track,
+    string $album = '',
+    int $timestamp = 0
+): array {
+    if ($timestamp === 0) {
+        $timestamp = time();
+    }
+
+    $params = [
+        'api_key'      => $apiKey,
+        'artist[0]'    => $artist,
+        'method'       => 'track.scrobble',
+        'sk'           => $sessionKey,
+        'timestamp[0]' => (string)$timestamp,
+        'track[0]'     => $track,
+    ];
+
+    if ($album !== '') {
+        $params['album[0]'] = $album;
+    }
+
+    $params['api_sig'] = lastfm_build_signature($params, $sharedSecret);
+    $params['format']  = 'json';
+
+    $response = lastfm_http_post('https://ws.audioscrobbler.com/2.0/', $params);
+    if (!$response['ok']) {
+        return $response;
+    }
+
+    $decoded = json_decode((string)$response['body'], true);
+    if (!is_array($decoded)) {
+        return ['ok' => false, 'error' => 'Invalid JSON from Last.fm'];
+    }
+
+    if (isset($decoded['error'])) {
+        return ['ok' => false, 'error' => (string)($decoded['message'] ?? 'Last.fm scrobble error')];
+    }
+
+    $accepted = (int)($decoded['scrobbles']['@attr']['accepted'] ?? 0);
+    if ($accepted === 0) {
+        $ignoredMsg = (string)($decoded['scrobbles']['scrobble']['ignoredMessage']['#text'] ?? 'Scrobble ignored');
+        return ['ok' => false, 'error' => $ignoredMsg];
+    }
+
+    return ['ok' => true, 'accepted' => $accepted];
+}

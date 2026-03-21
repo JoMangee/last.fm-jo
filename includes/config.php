@@ -94,6 +94,16 @@ function spotify_config(): array
 }
 
 /**
+ * Return the shared bot secret used to authenticate bot API requests.
+ *
+ * @return string The secret, or '' if not configured.
+ */
+function bot_secret(): string
+{
+    return getenv('BOT_SECRET') ?: '';
+}
+
+/**
  * Read the persisted Spotify session data from data/spotify_session.json.
  *
  * Returns null if the file does not exist or is unreadable.

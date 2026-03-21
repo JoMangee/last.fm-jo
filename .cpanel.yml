@@ -6,9 +6,11 @@ deployment:
     - /bin/mkdir -p $LASTFMPATH
     - /bin/mkdir -p $LASTFMPATH/callback
     - /bin/mkdir -p $LASTFMPATH/data
+    - /bin/mkdir -p $LASTFMPATH/scrobble
     - /bin/cp -R includes $LASTFMPATH/
     - /bin/cp index.php $LASTFMPATH/index.php
     - /bin/cp callback/index.php $LASTFMPATH/callback/index.php
+    - /bin/cp scrobble/index.php $LASTFMPATH/scrobble/index.php
     - /bin/cp .env.example $LASTFMPATH/.env.example
     - /bin/cp README.md $LASTFMPATH/
     - /bin/cp data/.htaccess $LASTFMPATH/data/.htaccess
@@ -23,9 +25,11 @@ deployment:
     - /bin/mkdir -p $SPOTIFYPATH
     - /bin/mkdir -p $SPOTIFYPATH/callback
     - /bin/mkdir -p $SPOTIFYPATH/data
+    - /bin/mkdir -p $SPOTIFYPATH/interact
     - /bin/cp -R includes $SPOTIFYPATH/
     - /bin/cp spotify/index.php $SPOTIFYPATH/index.php
     - /bin/cp spotify/callback/index.php $SPOTIFYPATH/callback/index.php
+    - /bin/cp spotify/interact/index.php $SPOTIFYPATH/interact/index.php
     - /bin/cp data/.htaccess $SPOTIFYPATH/data/.htaccess
     - /usr/bin/find $SPOTIFYPATH -type d -exec chmod 755 {} \;
     - /usr/bin/find $SPOTIFYPATH -type f -exec chmod 644 {} \;

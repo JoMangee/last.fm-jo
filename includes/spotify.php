@@ -281,3 +281,162 @@ function spotify_get_top_tracks(
     $items = $result['data']['items'] ?? [];
     return ['ok' => true, 'tracks' => $items];
 }
+
+/**
+ * Perform a Bearer-authenticated PUT request to the Spotify Web API.
+ *
+ * Returns ['ok' => true] on 204 No Content (common for playback endpoints).
+ *
+ * @param string     $endpoint Spotify API endpoint.
+ * @param string     $token    Access token.
+ * @param array|null $body     Optional JSON body.
+ * @return array{ok: bool, status?: int, data?: array, error?: string}
+ */
+function spotify_api_put(string $endpoint, string $token, ?array $body = null): array
+{
+    $url      = 'https://api.spotify.com/' . ltrim($endpoint, '/');
+    $jsonBody = $body !== null ? (string)json_encode($body) : '';
+
+    if (function_exists('curl_init')) {
+        $ch = curl_init($url);
+        if ($ch === false) {
+            return ['ok' => false, 'error' => 'Failed to initialize cURL'];
+        }
+
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_CUSTOMREQUEST  => 'PUT',
+            CURLOPT_POSTFIELDS     => $jsonBody,
+            CURLOPT_HTTPHEADER     => [
+                'Authorization: Bearer ' . $token,
+                'Content-Type: application/json',
+            ],
+            CURLOPT_TIMEOUT        => 20,
+            CURLOPT_CONNECTTIMEOUT => 10,
+            CURLOPT_SSL_VERIFYPEER => true,
+        ]);
+
+        $response = curl_exec($ch);
+        $error    = curl_error($ch);
+        $status   = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+
+        if ($response === false) {
+            return ['ok' => false, 'error' => $error !== '' ? $error : 'HTTP request failed'];
+        }
+    } else {
+        $context = stream_context_create([
+            'http' => [
+                'method'  => 'PUT',
+                'header'  => 'Authorization: Bearer ' . $token . "\r\nContent-Type: application/json\r\n",
+                'content' => $jsonBody,
+                'timeout' => 20,
+            ],
+        ]);
+        $response = @file_get_contents($url, false, $context);
+        $status   = 200;
+        if ($response === false) {
+            return ['ok' => false, 'error' => 'HTTP request failed'];
+        }
+    }
+
+    // 204 No Content is success for playback endpoints
+    if ($status === 204 || (string)$response === '') {
+        return ['ok' => true, 'status' => $status];
+    }
+
+    $decoded = json_decode((string)$response, true);
+    if (!is_array($decoded)) {
+        return ['ok' => $status < 400, 'status' => $status];
+    }
+
+    if (isset($decoded['error'])) {
+        $msg = (string)($decoded['error']['message'] ?? 'Spotify API error');
+        return ['ok' => false, 'status' => $status, 'error' => $msg];
+    }
+
+    return ['ok' => true, 'status' => $status, 'data' => $decoded];
+}
+
+/**
+ * Get the current Spotify playback state.
+ *
+ * @param string $accessToken Valid access token.
+ * @return array{ok: bool, playing?: bool, track?: string, artists?: string, device?: string, error?: string}
+ */
+function spotify_get_playback_state(string $accessToken): array
+{
+    $result = spotify_api_get('v1/me/player', $accessToken);
+    if (!$result['ok']) {
+        return $result;
+    }
+
+    // 204 means no active device
+    if (($result['status'] ?? 0) === 204 || empty($result['data'])) {
+        return ['ok' => true, 'playing' => false, 'status_text' => 'No active device'];
+    }
+
+    $data = $result['data'];
+    return [
+        'ok'      => true,
+        'playing' => (bool)($data['is_playing'] ?? false),
+        'track'   => (string)($data['item']['name'] ?? ''),
+        'artists' => implode(', ', array_map(
+            fn($a) => (string)($a['name'] ?? ''),
+            (array)($data['item']['artists'] ?? [])
+        )),
+        'album'   => (string)($data['item']['album']['name'] ?? ''),
+        'device'  => (string)($data['device']['name'] ?? ''),
+    ];
+}
+
+/**
+ * Start or resume Spotify playback, optionally for a specific URI.
+ *
+ * @param string $accessToken Valid access token.
+ * @param string $uri         Spotify URI (track/album/playlist), or '' to resume.
+ * @return array{ok: bool, status?: int, error?: string}
+ */
+function spotify_play(string $accessToken, string $uri = ''): array
+{
+    $body = $uri !== '' ? ['uris' => [$uri]] : null;
+    return spotify_api_put('v1/me/player/play', $accessToken, $body);
+}
+
+/**
+ * Return a valid (auto-refreshed) Spotify access token from the saved session.
+ *
+ * Saves the refreshed token back to data/spotify_session.json if refreshed.
+ *
+ * @return array{ok: bool, token?: string, error?: string}
+ */
+function spotify_get_valid_token(): array
+{
+    $session = spotify_session_data();
+    if ($session === null) {
+        return ['ok' => false, 'error' => 'Not authenticated with Spotify'];
+    }
+
+    $accessToken = (string)($session['access_token'] ?? '');
+    $expiresAt   = (int)($session['expires_at'] ?? 0);
+
+    if (time() >= $expiresAt - 60) {
+        $config        = spotify_config();
+        $refreshResult = spotify_refresh_token(
+            $config['client_id'],
+            $config['client_secret'],
+            (string)($session['refresh_token'] ?? '')
+        );
+        if (!$refreshResult['ok']) {
+            return ['ok' => false, 'error' => 'Token refresh failed: ' . ($refreshResult['error'] ?? 'unknown')];
+        }
+        $accessToken             = (string)$refreshResult['access_token'];
+        $session['access_token'] = $accessToken;
+        $session['expires_at']   = time() + (int)$refreshResult['expires_in'];
+        $dataFile = __DIR__ . '/../data/spotify_session.json';
+        file_put_contents($dataFile, (string)json_encode($session, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+        chmod($dataFile, 0600);
+    }
+
+    return ['ok' => true, 'token' => $accessToken];
+}
