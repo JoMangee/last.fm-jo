@@ -147,9 +147,11 @@ function spotify_api_get(string $endpoint, string $token): array
         }
     }
 
-    $decoded = json_decode((string)$response, true);
+    $raw = (string)$response;
+    $decoded = json_decode($raw, true);
     if (!is_array($decoded)) {
-        return ['ok' => false, 'error' => 'Invalid JSON from Spotify'];
+        $preview = substr($raw, 0, 200);
+        return ['ok' => false, 'status' => $status, 'error' => 'Invalid JSON from Spotify (HTTP ' . $status . '): ' . $preview];
     }
 
     if (isset($decoded['error'])) {

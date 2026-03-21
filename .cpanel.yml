@@ -30,6 +30,7 @@ deployment:
     - /bin/mkdir -p $SPOTIFYPATH/interact
     - /bin/cp -R includes $SPOTIFYPATH/
     - /bin/cp spotify/index.php $SPOTIFYPATH/index.php
+    - /bin/cp spotify/status.php $SPOTIFYPATH/status.php
     - /bin/cp deploy/spotify-root.htaccess $SPOTIFYPATH/.htaccess
     - /bin/cp spotify/callback/index.php $SPOTIFYPATH/callback/index.php
     - /bin/cp spotify/interact/index.php $SPOTIFYPATH/interact/index.php
