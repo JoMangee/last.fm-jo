@@ -21,7 +21,7 @@ if (isset($_GET['connect'])) {
         $state = bin2hex(random_bytes(16));
         $_SESSION['spotify_oauth_state'] = $state;
         $authUrl = spotify_get_auth_url($config['client_id'], $config['redirect_uri'], $state,
-            'user-top-read user-read-playback-state user-modify-playback-state user-read-currently-playing'
+            'user-read-private user-top-read user-read-playback-state user-modify-playback-state user-read-currently-playing'
         );
         header('Location: ' . $authUrl);
         exit;
