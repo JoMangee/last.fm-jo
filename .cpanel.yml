@@ -15,4 +15,5 @@ deployment:
     - /usr/bin/find $DEPLOYPATH -type f -exec chmod 644 {} \;
     - if [ -f $DEPLOYPATH/.env ]; then chmod 600 $DEPLOYPATH/.env; fi
     - chmod 750 $DEPLOYPATH/data
+    - chmod 775 $DEPLOYPATH/data
     - if [ -f $DEPLOYPATH/data/session.json ]; then chmod 600 $DEPLOYPATH/data/session.json; fi

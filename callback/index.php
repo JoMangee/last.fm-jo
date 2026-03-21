@@ -19,17 +19,25 @@ if ($token === '') {
         $error = (string)($sessionResult['error'] ?? 'Could not exchange token for session');
     } else {
         $session = $sessionResult['session'];
-        $dataDir = __DIR__ . '/../data';
+        $dataDir = realpath(__DIR__ . '/../data') ?: (__DIR__ . '/../data');
         if (!is_dir($dataDir)) {
-            mkdir($dataDir, 0750, true);
+            if (!mkdir($dataDir, 0750, true)) {
+                $error = 'Could not create data directory: ' . $dataDir;
+            }
         }
-        $payload = json_encode([
-            'session_key' => $session['key'] ?? '',
-            'username'    => $session['name'] ?? '',
-            'saved_at'    => date('c'),
-        ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
-        file_put_contents($dataDir . '/session.json', $payload);
-        chmod($dataDir . '/session.json', 0600);
+        if ($error === '') {
+            $payload = json_encode([
+                'session_key' => $session['key'] ?? '',
+                'username'    => $session['name'] ?? '',
+                'saved_at'    => date('c'),
+            ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+            $written = file_put_contents($dataDir . '/session.json', $payload);
+            if ($written === false) {
+                $error = 'Could not write session.json. Check that the web process has write access to: ' . $dataDir;
+            } else {
+                chmod($dataDir . '/session.json', 0600);
+            }
+        }
     }
 }
 
