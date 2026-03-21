@@ -1,17 +1,7 @@
 Options -Indexes
+DirectoryIndex index.php
 
 # LiteSpeed/Apache: stop 301-redirecting directory requests to trailing slash.
 # Without this, POST /scrobble gets redirected to POST /scrobble/ which
 # LiteSpeed converts to a GET, causing a 405 from our PHP endpoint.
 DirectorySlash Off
-
-RewriteEngine On
-
-# If the request matches a real file, serve it directly.
-RewriteCond %{REQUEST_FILENAME} -f
-RewriteRule ^ - [L]
-
-# If the path (with or without trailing slash) points to a directory
-# that contains an index.php, route to it without a redirect.
-RewriteCond %{REQUEST_FILENAME} !-f
-RewriteRule ^(.*?)/?$ $1/index.php [L,QSA]
