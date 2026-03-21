@@ -1,6 +1,29 @@
 <?php
 declare(strict_types=1);
 
+/**
+ * Last.fm API helpers.
+ *
+ * Implements the three-step Last.fm web auth flow:
+ *   1. lastfm_get_token()   — request an unauthorised token
+ *   2. lastfm_auth_url()    — build the URL that sends the user to Last.fm
+ *   3. lastfm_get_session() — exchange the authorised token for a session key
+ *
+ * All functions return an associative array with at minimum:
+ *   ['ok' => true,  ...]  on success
+ *   ['ok' => false, 'error' => string] on failure
+ */
+
+/**
+ * Build the API method signature required by authenticated Last.fm calls.
+ *
+ * Concatenates sorted key/value pairs (excluding 'format'), appends the
+ * shared secret, and returns the MD5 hex digest.
+ *
+ * @param array  $params       API parameters to sign.
+ * @param string $sharedSecret Application shared secret from Last.fm.
+ * @return string 32-character MD5 hex signature.
+ */
 function lastfm_build_signature(array $params, string $sharedSecret): string
 {
     unset($params['format']);
@@ -15,6 +38,12 @@ function lastfm_build_signature(array $params, string $sharedSecret): string
     return md5($base . $sharedSecret);
 }
 
+/**
+ * Perform a GET request, preferring cURL over file_get_contents.
+ *
+ * @param string $url Fully-formed URL including query string.
+ * @return array{ok: bool, status?: int, body?: string, error?: string}
+ */
 function lastfm_http_get(string $url): array
 {
     if (function_exists('curl_init')) {
@@ -59,6 +88,16 @@ function lastfm_http_get(string $url): array
     return ['ok' => true, 'status' => 200, 'body' => $body];
 }
 
+/**
+ * Request an unauthorised token from Last.fm (auth.getToken).
+ *
+ * The token must be authorised by the user via lastfm_auth_url() before
+ * it can be exchanged for a session key.
+ *
+ * @param string $apiKey       Application API key.
+ * @param string $sharedSecret Application shared secret.
+ * @return array{ok: bool, token?: string, error?: string}
+ */
 function lastfm_get_token(string $apiKey, string $sharedSecret): array
 {
     $params = [
@@ -91,6 +130,18 @@ function lastfm_get_token(string $apiKey, string $sharedSecret): array
     return ['ok' => true, 'token' => (string)$decoded['token']];
 }
 
+/**
+ * Build the Last.fm authorisation URL to redirect the user to.
+ *
+ * After the user approves access, Last.fm sends them to $callbackUrl
+ * with a `token` query parameter. If $callbackUrl is empty, Last.fm
+ * shows a plain confirmation page instead of redirecting.
+ *
+ * @param string $apiKey      Application API key.
+ * @param string $token       Unauthorised token from lastfm_get_token().
+ * @param string $callbackUrl URL Last.fm will redirect back to (may be empty).
+ * @return string Full authorisation URL.
+ */
 function lastfm_auth_url(string $apiKey, string $token, string $callbackUrl): string
 {
     $query = [
@@ -105,6 +156,17 @@ function lastfm_auth_url(string $apiKey, string $token, string $callbackUrl): st
     return 'https://www.last.fm/api/auth/?' . http_build_query($query);
 }
 
+/**
+ * Exchange an authorised token for a persistent Last.fm session key (auth.getSession).
+ *
+ * The returned session key does not expire and should be stored securely
+ * server-side. It is used to sign all subsequent authenticated API calls.
+ *
+ * @param string $apiKey       Application API key.
+ * @param string $sharedSecret Application shared secret.
+ * @param string $token        Token previously authorised by the user.
+ * @return array{ok: bool, session?: array{key: string, name: string, subscriber: int}, error?: string}
+ */
 function lastfm_get_session(string $apiKey, string $sharedSecret, string $token): array
 {
     $params = [

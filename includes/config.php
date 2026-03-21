@@ -1,6 +1,15 @@
 <?php
 declare(strict_types=1);
 
+/**
+ * Load a .env file into the process environment.
+ *
+ * Reads KEY=VALUE pairs from the given file path and injects them via
+ * putenv()/$_ENV. Lines beginning with # and blank lines are ignored.
+ * Existing environment variables are never overwritten.
+ *
+ * @param string $filePath Absolute path to the .env file.
+ */
 function load_env_file(string $filePath): void
 {
     if (!is_file($filePath)) {
@@ -39,6 +48,11 @@ function load_env_file(string $filePath): void
 
 load_env_file(__DIR__ . '/../.env');
 
+/**
+ * Return the application configuration values read from the environment.
+ *
+ * @return array{api_key: string, shared_secret: string, callback_url: string}
+ */
 function app_config(): array
 {
     return [
@@ -48,6 +62,13 @@ function app_config(): array
     ];
 }
 
+/**
+ * Read the persisted Last.fm session key from data/session.json.
+ *
+ * Returns an empty string if the file does not exist or is unreadable.
+ *
+ * @return string The session key, or '' if not yet saved.
+ */
 function app_session_key(): string
 {
     $file = __DIR__ . '/../data/session.json';

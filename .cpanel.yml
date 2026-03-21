@@ -1,7 +1,9 @@
 ---
+# Copy this file to .cpanel.yml and set DEPLOYPATH to your web root.
+# Example: /home/YOUR_USERNAME/public_html/lastfm
 deployment:
   tasks:
-    - export DEPLOYPATH=/home2/meshnet/public_html/lastfm
+    - export DEPLOYPATH=/home/YOUR_USERNAME/public_html/lastfm
     - /bin/mkdir -p $DEPLOYPATH
     - /bin/mkdir -p $DEPLOYPATH/callback
     - /bin/mkdir -p $DEPLOYPATH/data
