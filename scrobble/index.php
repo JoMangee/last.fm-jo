@@ -6,8 +6,6 @@ require_once __DIR__ . '/../includes/lastfm.php';
 
 header('Content-Type: application/json');
 
-// Authentication token for GET requests (loaded from environment)
-
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $raw = (string)file_get_contents('php://input');
     $body = json_decode($raw, true);
@@ -18,7 +16,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 
-    // Validate bit secret - constant-time comparison prevents timing attacks
     $bitSecret = bit_secret();
     if ($bitSecret === '' || !isset($body['secret']) || !hash_equals($bitSecret, (string)$body['secret'])) {
         http_response_code(403);
@@ -30,7 +27,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $track = trim((string)($body['track'] ?? ''));
     $album = trim((string)($body['album'] ?? ''));
 } elseif ($_SERVER['REQUEST_METHOD'] === 'GET') {
-    // GET parameters
     $artist = trim((string)($_GET['artist'] ?? ''));
     $track = trim((string)($_GET['track'] ?? ''));
     $album = trim((string)($_GET['album'] ?? ''));
@@ -43,7 +39,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 
-    // Compute expected digest: md5(token . $salt)
     $expected = md5(scrobble_token() . $salt);
     if (!hash_equals($expected, $digest)) {
         http_response_code(403);
