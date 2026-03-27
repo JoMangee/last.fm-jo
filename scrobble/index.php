@@ -6,6 +6,10 @@ require_once __DIR__ . '/../includes/lastfm.php';
 
 header('Content-Type: application/json');
 
+$artist = '';
+$track = '';
+$album = '';
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $raw = (string)file_get_contents('php://input');
     $body = json_decode($raw, true);
@@ -16,8 +20,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 
-    $bitSecret = bit_secret();
-    if ($bitSecret === '' || !isset($body['secret']) || !hash_equals($bitSecret, (string)$body['secret'])) {
+    $secret = bot_secret();
+    if ($secret === '' || !isset($body['secret']) || !hash_equals($secret, (string)$body['secret'])) {
         http_response_code(403);
         echo json_encode(['ok' => false, 'error' => 'Forbidden']);
         exit;
@@ -26,21 +30,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $artist = trim((string)($body['artist'] ?? ''));
     $track = trim((string)($body['track'] ?? ''));
     $album = trim((string)($body['album'] ?? ''));
+
 } elseif ($_SERVER['REQUEST_METHOD'] === 'GET') {
     $artist = trim((string)($_GET['artist'] ?? ''));
     $track = trim((string)($_GET['track'] ?? ''));
     $album = trim((string)($_GET['album'] ?? ''));
-    $salt = trim((string)($_GET['salt'] ?? ''));
-    $digest = trim((string)($_GET['digest'] ?? ''));
+    $salt = (string)($_GET['salt'] ?? '');
+    $digest = (string)($_GET['digest'] ?? '');
 
-    if ($artist === '' || $track === '' || $salt === '' || $digest === '') {
-        http_response_code(400);
-        echo json_encode(['ok' => false, 'error' => 'artist, track, salt, and digest are required']);
-        exit;
-    }
+    $secret = bot_secret();
+    $expected = md5($secret . $salt);
 
-    $expected = md5(scrobble_token() . $salt);
-    if (!hash_equals($expected, $digest)) {
+    if ($secret === '' || $digest === '' || !hash_equals($expected, $digest)) {
         http_response_code(403);
         echo json_encode(['ok' => false, 'error' => 'Forbidden']);
         exit;
@@ -75,5 +76,5 @@ $result = lastfm_scrobble(
     $album
 );
 
-http_response_code($result['ok'] ? 200 : 502);
+http_response_code($result['ok'] ? 200 : 500);
 echo json_encode($result);
