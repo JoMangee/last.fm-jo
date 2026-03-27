@@ -7,6 +7,8 @@ require_once __DIR__ . '/../includes/lastfm.php';
 header('Content-Type: application/json');
 
 // Authentication token for GET requests
+
+
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $raw = (string)file_get_contents('php://input');
     $body = json_decode($raw, true);
